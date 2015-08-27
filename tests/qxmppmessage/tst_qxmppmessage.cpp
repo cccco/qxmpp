@@ -24,6 +24,7 @@
 
 #include <QObject>
 #include "QXmppMessage.h"
+#include "QXmppMessageCarbonsIq.h"
 #include "util.h"
 
 class tst_QXmppMessage : public QObject
@@ -45,6 +46,7 @@ private slots:
     void testXhtml();
     void testSubextensions();
     void testChatMarkers();
+    void testMessageCarbons();
 };
 
 void tst_QXmppMessage::testBasic_data()
@@ -537,6 +539,45 @@ void tst_QXmppMessage::testChatMarkers()
     serialisationMessage.setMarkerId("message-2");
     serialisationMessage.setMarkedThread("sleeping");
     serializePacket(serialisationMessage, acknowledgedThreadSerialisation);
+}
+
+void tst_QXmppMessage::testMessageCarbons()
+{
+    const QByteArray xml("<message type=\"normal\">"
+        "<body>hi!</body>"
+        "<sent xmlns='urn:xmpp:carbons:2'>"
+        "<forwarded xmlns=\"urn:xmpp:forward:0\">"
+        "<delay xmlns=\"urn:xmpp:delay\" stamp=\"2010-06-29T08:23:06Z\"/>"
+        "<message xmlns=\"jabber:client\" "
+        "type=\"chat\" "
+        "from=\"bar@example.com/QXmpp\" "
+        "to=\"foo@example.com/QXmpp\">"
+        "<body>ABC</body>"
+        "</message>"
+        "</forwarded>"
+        "</sent>"
+        "</message>");
+
+    QXmppMessage message;
+    parsePacket(message, xml);
+    QCOMPARE(message.hasMessageCarbon(), true);
+
+    QXmppMessage fwd = message.carbonMessage();
+    QCOMPARE(fwd.stamp(), QDateTime(QDate(2010, 06, 29), QTime(8, 23, 6), Qt::UTC));
+    QCOMPARE(fwd.body(), QString("ABC"));
+    QCOMPARE(fwd.to(), QString("foo@example.com/QXmpp"));
+    QCOMPARE(fwd.from(), QString("bar@example.com/QXmpp"));
+
+
+    const QByteArray carbonXml("<iq id=\"id1\""
+                               " type=\"set\">"
+                                   "<enable xmlns=\"urn:xmpp:carbons:2\"/>"
+                              "</iq>");
+
+    QXmppMessageCarbonsIq carbonIq;
+    carbonIq.setId("id1");
+    serializePacket(carbonIq, carbonXml);
+
 }
 
 QTEST_MAIN(tst_QXmppMessage)

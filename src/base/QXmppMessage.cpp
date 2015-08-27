@@ -88,6 +88,9 @@ public:
     QString mucInvitationPassword;
     QString mucInvitationReason;
 
+    // XEP-0280: Message Carbons
+    QSharedPointer<QXmppMessage> carbonMessage;
+
     // XEP-0333: Chat Markers
     bool markable;
     QXmppMessage::Marker marker;
@@ -510,6 +513,17 @@ void QXmppMessage::parse(const QDomElement &element)
         d->stampType = DelayedDelivery;
     }
 
+    // XEP-0280: message carbons
+    QDomElement carbonElement = element.firstChildElement("sent");
+    if (!carbonElement.isNull() && carbonElement.namespaceURI() == ns_message_carbons)
+    {
+        QDomElement forwardedElement = carbonElement.firstChildElement("forwarded");
+        if (!forwardedElement.isNull() && forwardedElement.namespaceURI() == ns_stanza_forwarding)
+        {
+            setMessagecarbon(parseForward(forwardedElement));
+        }
+    }
+
     // XEP-0224: Attention
     d->attentionRequested = element.firstChildElement("attention").namespaceURI() == ns_attention;
 
@@ -691,3 +705,25 @@ void QXmppMessage::toXml(QXmlStreamWriter *xmlWriter) const
     xmlWriter->writeEndElement();
 }
 /// \endcond
+
+
+bool QXmppMessage::hasMessageCarbon() const
+{
+    return !d->carbonMessage.isNull();
+}
+
+QXmppMessage QXmppMessage::carbonMessage() const
+{
+    if (d->carbonMessage.isNull()) {
+        return QXmppMessage(); // default constructed
+    }
+
+    return *(d->carbonMessage);
+
+}
+
+void QXmppMessage::setMessagecarbon(const QXmppMessage& message)
+{
+    // make a new shared pointer
+    d->carbonMessage = QSharedPointer<QXmppMessage>(new QXmppMessage(message));
+}

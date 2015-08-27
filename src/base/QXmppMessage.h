@@ -116,6 +116,11 @@ public:
     QString xhtml() const;
     void setXhtml(const QString &xhtml);
 
+    // XEP-0280
+    bool hasMessageCarbon() const;
+    QXmppMessage carbonMessage() const;
+    void setMessagecarbon(const QXmppMessage& message);
+
     // XEP-0333
     bool isMarkable() const;
     void setMarkable(const bool);
