@@ -134,10 +134,18 @@ public:
     Marker marker() const;
     void setMarker(const Marker);
 
+    // XEP-0297
+    bool hasForwarded() const;
+    QXmppMessage forwarded() const;
+    void setForwarded(const QXmppMessage& forwarded);
+
     /// \cond
     void parse(const QDomElement &element);
     void toXml(QXmlStreamWriter *writer) const;
     /// \endcond
+
+protected:
+    QXmppMessage parseForward(QDomElement &element);
 
 private:
     QSharedDataPointer<QXmppMessagePrivate> d;

@@ -26,6 +26,7 @@
 #include <QTextStream>
 #include <QXmlStreamWriter>
 #include <QPair>
+#include <QSharedPointer>
 
 #include "QXmppConstants.h"
 #include "QXmppMessage.h"
@@ -82,6 +83,9 @@ public:
     // Request message receipt as per XEP-0184.
     QString receiptId;
     bool receiptRequested;
+
+    // XEP-0297: Stanza Forwarding
+    QSharedPointer<QXmppMessage> forwarded;
 
     // XEP-0249: Direct MUC Invitations
     QString mucInvitationJid;
@@ -382,6 +386,26 @@ namespace
     }
 }
 
+bool QXmppMessage::hasForwarded() const
+{
+    return !d->forwarded.isNull();
+}
+
+QXmppMessage QXmppMessage::forwarded() const
+{
+    if (d->forwarded.isNull()) {
+        return QXmppMessage(); // default constructed
+    }
+
+    return *(d->forwarded);
+}
+
+void QXmppMessage::setForwarded(const QXmppMessage& forwarded)
+{
+    // make a new shared pointer
+    d->forwarded = QSharedPointer<QXmppMessage>(new QXmppMessage(forwarded));
+}
+
 /// Returns true if a message is markable, as defined
 /// XEP-0333: Chat Markers.
 
@@ -524,6 +548,25 @@ void QXmppMessage::parse(const QDomElement &element)
         }
     }
 
+    // XEP-0297: Forwarding
+    QDomElement forwardedElement = element.firstChildElement("forwarded");
+    if (!forwardedElement.isNull() && forwardedElement.namespaceURI() == ns_stanza_forwarding)
+    {
+        QDomElement msgElement = forwardedElement.firstChildElement("message");
+
+        QXmppMessage fwd;
+        fwd.parse(msgElement);
+
+        QDomElement delayElement = forwardedElement.firstChildElement("delay");
+        if (!delayElement.isNull() && delayElement.namespaceURI() == ns_delayed_delivery) {
+            const QString str = delayElement.attribute("stamp");
+            fwd.d->stamp = QXmppUtils::datetimeFromString(str);
+            fwd.d->stampType = DelayedDelivery;
+        }
+
+        setForwarded(fwd);
+    }
+
     // XEP-0224: Attention
     d->attentionRequested = element.firstChildElement("attention").namespaceURI() == ns_attention;
 
@@ -593,6 +636,28 @@ void QXmppMessage::parse(const QDomElement &element)
         xElement = xElement.nextSiblingElement();
     }
     setExtensions(extensions);
+}
+
+QXmppMessage QXmppMessage::parseForward(QDomElement &element)
+{
+    QXmppMessage result;
+    if (!element.isNull() && element.namespaceURI() == ns_stanza_forwarding)
+    {
+        QDomElement msgElement = element.firstChildElement("message");
+
+        QXmppMessage fwd;
+        fwd.parse(msgElement);
+
+        QDomElement delayElement = element.firstChildElement("delay");
+        if (!delayElement.isNull() && delayElement.namespaceURI() == ns_delayed_delivery) {
+            const QString str = delayElement.attribute("stamp");
+            fwd.d->stamp = QXmppUtils::datetimeFromString(str);
+            fwd.d->stampType = DelayedDelivery;
+        }
+
+        result = fwd;
+    }
+    return result;
 }
 
 void QXmppMessage::toXml(QXmlStreamWriter *xmlWriter) const
