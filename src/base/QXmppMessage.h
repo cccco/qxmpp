@@ -69,6 +69,13 @@ public:
         Acknowledged
     };
 
+    /// This enum describes a message carbons as defined by
+    /// XEP-0280 : Message Carbons
+    enum ElementDirection {
+        ElementSent = 0,
+        ElementReceived
+    };
+
     QXmppMessage(const QString& from = QString(), const QString& to = QString(),
                  const QString& body = QString(), const QString& thread = QString());
 
@@ -118,8 +125,12 @@ public:
 
     // XEP-0280
     bool hasMessageCarbon() const;
+
     QXmppMessage carbonMessage() const;
     void setMessagecarbon(const QXmppMessage& message);
+
+    QXmppMessage::ElementDirection carbonDirection() const;
+    void setCarbonDirection(const QXmppMessage::ElementDirection &dir);
 
     // XEP-0333
     bool isMarkable() const;

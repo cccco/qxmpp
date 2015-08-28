@@ -94,6 +94,7 @@ public:
 
     // XEP-0280: Message Carbons
     QSharedPointer<QXmppMessage> carbonMessage;
+    QXmppMessage::ElementDirection carbonDirection;
 
     // XEP-0333: Chat Markers
     bool markable;
@@ -538,13 +539,19 @@ void QXmppMessage::parse(const QDomElement &element)
     }
 
     // XEP-0280: message carbons
+    QXmppMessage::ElementDirection dirCarbon = QXmppMessage::ElementSent;
     QDomElement carbonElement = element.firstChildElement("sent");
+    if (carbonElement.isNull()) {
+        dirCarbon = QXmppMessage::ElementReceived;
+        carbonElement = element.firstChildElement("received");
+    }
     if (!carbonElement.isNull() && carbonElement.namespaceURI() == ns_message_carbons)
     {
         QDomElement forwardedElement = carbonElement.firstChildElement("forwarded");
         if (!forwardedElement.isNull() && forwardedElement.namespaceURI() == ns_stanza_forwarding)
         {
             setMessagecarbon(parseForward(forwardedElement));
+            setCarbonDirection(dirCarbon);
         }
     }
 
@@ -791,4 +798,15 @@ void QXmppMessage::setMessagecarbon(const QXmppMessage& message)
 {
     // make a new shared pointer
     d->carbonMessage = QSharedPointer<QXmppMessage>(new QXmppMessage(message));
+}
+
+QXmppMessage::ElementDirection QXmppMessage::carbonDirection() const
+{
+    return d->carbonDirection;
+}
+
+void QXmppMessage::setCarbonDirection(const QXmppMessage::ElementDirection &dir)
+{
+    d->carbonDirection = dir;
+    d->carbonMessage->d->carbonDirection = dir;
 }
