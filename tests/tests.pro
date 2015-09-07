@@ -28,7 +28,8 @@ SUBDIRS = \
     qxmpptransfermanager \
     qxmpputils \
     qxmppvcardiq \
-    qxmppversioniq
+    qxmppversioniq \
+    qxmppsimplearchiveiq
 
 !isEmpty(QXMPP_AUTOTEST_INTERNAL) {
     SUBDIRS += qxmppcodec

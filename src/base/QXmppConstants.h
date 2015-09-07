@@ -117,6 +117,8 @@ extern const char* ns_bob;
 extern const char* ns_conference;
 // XEP-0296: Message Forwarding
 extern const char* ns_stanza_forwarding;
+// XEP-0313: Message Archieve Management
+extern const char* ns_simple_archive;
 // XEP-0333: Char Markers
 extern const char* ns_chat_markers;
 // XEP-0280: Message Carbons

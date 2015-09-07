@@ -39,4 +39,8 @@ SOURCES += \
     client/QXmppRpcManager.cpp \
     client/QXmppTransferManager.cpp \
     client/QXmppVCardManager.cpp \
-    client/QXmppVersionManager.cpp
+    client/QXmppVersionManager.cpp \
+    client/QXmppSimpleArchiveManager.cpp
+
+HEADERS += \
+    client/QXmppSimpleArchiveManager.h

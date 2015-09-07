@@ -150,6 +150,11 @@ public:
     QXmppMessage forwarded() const;
     void setForwarded(const QXmppMessage& forwarded);
 
+    // XEP-0313
+    bool hasMaMMessage() const;
+    QXmppMessage mamMessage() const;
+    void setMaMMessage(const QXmppMessage& message);
+
     /// \cond
     void parse(const QDomElement &element);
     void toXml(QXmlStreamWriter *writer) const;

@@ -87,6 +87,9 @@ public:
     // XEP-0297: Stanza Forwarding
     QSharedPointer<QXmppMessage> forwarded;
 
+    // XEP-0313: Simple Message Archive Management
+    QSharedPointer<QXmppMessage> mamMessage;
+
     // XEP-0249: Direct MUC Invitations
     QString mucInvitationJid;
     QString mucInvitationPassword;
@@ -407,6 +410,26 @@ void QXmppMessage::setForwarded(const QXmppMessage& forwarded)
     d->forwarded = QSharedPointer<QXmppMessage>(new QXmppMessage(forwarded));
 }
 
+bool QXmppMessage::hasMaMMessage() const
+{
+    return !d->mamMessage.isNull();
+}
+
+QXmppMessage QXmppMessage::mamMessage() const
+{
+    if (d->mamMessage.isNull()) {
+        return QXmppMessage(); // default constructed
+    }
+
+    return *(d->mamMessage);
+}
+
+void QXmppMessage::setMaMMessage(const QXmppMessage& message)
+{
+    // make a new shared pointer
+    d->mamMessage = QSharedPointer<QXmppMessage>(new QXmppMessage(message));
+}
+
 /// Returns true if a message is markable, as defined
 /// XEP-0333: Chat Markers.
 
@@ -538,6 +561,17 @@ void QXmppMessage::parse(const QDomElement &element)
         d->stampType = DelayedDelivery;
     }
 
+    // XEP-0313: Extract forwarded message from mam packet
+    QDomElement mamElement = element.firstChildElement("result");
+    if (!mamElement.isNull() && mamElement.namespaceURI() == ns_simple_archive)
+    {
+        QDomElement forwardedElement = mamElement.firstChildElement("forwarded");
+        if (!forwardedElement.isNull() && forwardedElement.namespaceURI() == ns_stanza_forwarding)
+        {
+            setMaMMessage(parseForward(forwardedElement));
+        }
+    }
+
     // XEP-0280: message carbons
     QXmppMessage::ElementDirection dirCarbon = QXmppMessage::ElementSent;
     QDomElement carbonElement = element.firstChildElement("sent");
@@ -559,19 +593,7 @@ void QXmppMessage::parse(const QDomElement &element)
     QDomElement forwardedElement = element.firstChildElement("forwarded");
     if (!forwardedElement.isNull() && forwardedElement.namespaceURI() == ns_stanza_forwarding)
     {
-        QDomElement msgElement = forwardedElement.firstChildElement("message");
-
-        QXmppMessage fwd;
-        fwd.parse(msgElement);
-
-        QDomElement delayElement = forwardedElement.firstChildElement("delay");
-        if (!delayElement.isNull() && delayElement.namespaceURI() == ns_delayed_delivery) {
-            const QString str = delayElement.attribute("stamp");
-            fwd.d->stamp = QXmppUtils::datetimeFromString(str);
-            fwd.d->stampType = DelayedDelivery;
-        }
-
-        setForwarded(fwd);
+         setForwarded(parseForward(forwardedElement));
     }
 
     // XEP-0224: Attention
