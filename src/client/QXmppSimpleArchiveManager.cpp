@@ -4,6 +4,7 @@
 #include "QXmppSimpleArchiveManager.h"
 #include "QXmppClient.h"
 #include "QXmppConstants.h"
+#include "QXmppIq.h"
 
 /// \cond
 QStringList QXmppSimpleArchiveManager::discoveryFeatures() const
@@ -56,8 +57,24 @@ bool QXmppSimpleArchiveManager::handleStanza(const QDomElement &element)
                 m_pendingQueries[queryId].messages.append(msg.mamMessage());
 
                 return true;
+
             } else {
                 qWarning() << "SimpleArchiveManager: unknown query ID:" << queryId;
+            }
+        } else {
+            resultElement = element.firstChildElement("fin");
+            if (!resultElement.isNull()) {
+                QString queryId = resultElement.attribute("queryid");
+                if (m_pendingQueries.contains(queryId)) {
+                    PendingQuery pendingQuery = m_pendingQueries.value(queryId);
+                    m_pendingQueries.remove(queryId);
+                    emit archiveMessagesReceived(pendingQuery.jid, pendingQuery.messages, QXmppResultSetReply());
+
+                    return true;
+
+                } else {
+                    qWarning() << "SimpleArchiveManager: unknown query ID:" << queryId;
+                }
             }
         }
     }
@@ -80,6 +97,7 @@ void QXmppSimpleArchiveManager::retrieveMessages(const QString &jid,
                                                  const QXmppResultSetQuery &rsm)
 {
     QXmppSimpleArchiveQueryIq packet;
+    packet.setType(QXmppIq::Set);
     packet.setResultSetQuery(rsm);
     packet.setStart(start);
     packet.setEnd(end);
